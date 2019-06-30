@@ -1,0 +1,748 @@
+% !TEX program = xelatex
+\documentclass[usenames,dvipsnames,handout,aspectratio=169]{beamer}
+
+\usefonttheme{professionalfonts}
+\usepackage[no-math]{fontspec}
+\usepackage{multicol}
+
+\usepackage[none]{hyphenat}
+\usepackage{hyperref}
+
+\fontspec [Path = ./fonts/, 
+	UprightFont = TextbookNew-Light,
+	BoldFont = TextbookNew-Regular]
+{Textbook New}
+
+\defaultfontfeatures{Scale=MatchLowercase}
+\setmainfont[Path=fonts/,
+	UprightFont = TextbookNew-Light,
+	BoldFont = TextbookNew-Regular,
+%	ItalicFont = TextbookNew-LightItalic,
+%	BoldItalicFont = TextbookNew-Italic
+]{Textbook New}
+\setromanfont[Path=fonts/,
+	UprightFont = TextbookNew-Light,
+	BoldFont = TextbookNew-Regular
+%	ItalicFont = TextbookNew-LightItalic,
+%	BoldItalicFont = TextbookNew-Italic
+]{Textbook New}
+\setsansfont[Path=fonts/,
+	UprightFont = TextbookNew-Light,
+	BoldFont = TextbookNew-Regular
+%	ItalicFont = TextbookNew-LightItalic,
+%	BoldItalicFont = TextbookNew-Italic
+]{Textbook New}
+\setmonofont[Path=fonts/, UprightFont = InputMono-Regular]{Input Mono}
+\newfontfamily{\cyrillicfont}[ Path=fonts/ ]{TextbookNew-Light}
+\newfontfamily{\cyrillicfontbf}[ Path=fonts/ ]{TextbookNew-Regular}
+\newfontfamily{\cyrillicfonttt}[Path=fonts/, UprightFont = InputMono-Regular]{Input Mono}
+
+\usepackage{yandex}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}
+
+\setdefaultlanguage{english} % язык определяет перевод названий, в том числе и логотипа
+
+\title{Sequence Modelling}
+\subtitle{Fifth Machine Learning in High Energy Physics Summer School,\\
+MLHEP 2019}
+
+\author[Ekaterina Artemova]{
+  Ekaterina Artemova
+}
+\institute{
+	\begin{tabular}{c c}
+		National~Research~University~Higher~School~of~Economics
+	\end{tabular}
+}
+
+\onbehalf{RNN, biRNN, BPTT, LSTM, RecNN}
+
+\noyandexlogoframe
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.eps,.png}
+\graphicspath{ {img/} }
+
+% \usefonttheme[onlymath]{serif}
+
+% added by Evgeny Sokolov
+\def\XX{\mathbb{X}}
+\def\PP{\mathbb{P}}
+\def\FF{\mathcal{F}}
+\def\EE{\mathbb{E}}
+\def\NN{\mathcal{N}}
+\def\LL{\mathcal{L}}
+\def\YY{\mathbb{Y}}
+\def\RR{\mathbb{R}}
+\def\HH{\mathbb{H}}
+\def\AA{\mathcal{A}}
+\newcommand{\cond}{\mspace{3mu}{|}\mspace{3mu}}
+\newcommand{\argmin}{\mathop{\rm arg\,min}\limits}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows,shapes.geometric,shadows,trees}
+\usetikzlibrary{calc}
+
+\tikzstyle{format} = [thick, draw=red!50!black!50]
+\usepackage{tkz-graph}
+
+\usepackage{color}
+\usepackage{bm}
+\usepackage{animate}
+
+\setlength{\abovedisplayskip}{2mm}
+\setlength{\belowdisplayskip}{2mm}
+%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+% Несколько альтернатив основного логотипа на титульную страницу:
+%\yandexlogo                          % общий логотип Яндекса
+%\yandexservicelogo{Название сервиса} % логотип конкретного сервиса
+
+%\yandexschoollogo                    % логотип ШАД
+% \crayfislogo
+%\yandexdatafactorylogo               % логотип YDF
+
+% Дополнительные логотипы. Здесь можно указывать произвольный код. \textheight обозначает допустимую высоту.
+\addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/hse.eps}}
+\addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/logo_shad.eps}}
+%\addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/logo_skoltech.png}}
+% \addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/mipt.eps}}
+% \addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/st.png}}
+% \addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/ucd_seal.eps}}
+% \addlogo{\includegraphics[height=\textheight,keepaspectratio]{yandex/uci.eps}}
+% %\addlogo{\insertyandexdataschoollogo[height=\textheight,keepaspectratio]}
+% %\addlogo{\insertyandexdatafactorylogo[height=\textheight,keepaspectratio]}
+
+
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+\begin{frame}[plain]
+\tableofcontents
+\end{frame}
+
+\section{Sequence modelling}
+
+\begin{frame}
+\frametitle{Sequential data}
+
+\begin{enumerate}
+	\item Time series
+	\begin{itemize}
+	\item Financial data analysis: stock market, commodities, Forex
+	\item Healthcare: pulse rate, sugar level (from medical equipment and wearables) 
+	\end{itemize}
+	\item Text and speech: speech understanding, text generation
+	\item Spatiotemporal data
+	\begin{itemize}
+	\item Self-driving and object tracking
+	\item Plate tectonic activity
+	\end{itemize}
+	\item Physics: jet identification
+	\item etc.
+\end{enumerate}
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Sequence modelling I}
+
+\begin{block}{Sequence classification}
+
+\begin{enumerate}
+
+
+\item $\bm{x} = x_1,x_2,\ldots,x_n $, $x_i \in V$  - objects
+\item $y \in \{1,\ldots, L\}$ - labels 
+\item $ \{(\bm{x}^{(1)}, y_1 ), (\bm{x}^{(2)}, y_2 ), \ldots, (\bm{x}^{(m)}, y_m ) \} $ – training data
+
+\end{enumerate}
+
+Classification problem: $ \gamma : \bm{x} \rightarrow y$ 
+	
+\end{block}
+
+\begin{enumerate}
+	\item Activity recognition: $x$ – pulse rate, $y$ – activity (walking, running, peace)
+	\item Opinion mining: $x$ – sentence, $y$ – sentiment (positive, negative)
+	\item Trading: $x$ – stock market, $y$ – action (sell, buy, do nothing) 
+\end{enumerate}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sequence modelling II}
+
+\begin{block}{Sequence labelling}
+
+\begin{enumerate}
+
+
+\item $\bm{x} = x_1,x_2,\ldots,x_n $, $x_i \in V$  - objects
+\item $\bm{y} = y_1,y_2,\ldots,y_n $, $y_i \in \{1,\ldots, L\}$ - labels 
+\item $ \{(\bm{x}^{(1)}, \bm{y}^{(1)} ), (\bm{x}^{(2)}, \bm{y}^{(2)} ),\ldots, (\bm{x}^{(m)}, \bm{y}^{(m)} ) \} $ – training data
+\item exponential number of possible solutions : if $\texttt{length}(x) =n$, there are  $L^n$ possible solutions
+\end{enumerate}
+
+Classification problem: $ \gamma : \bm{x} \rightarrow \bm{y}$ 
+	
+\end{block}
+
+\begin{enumerate}
+
+	\item Part of speech tagging: $x$ – word, $y$ – part of speech (verb, noun, etc.)
+	\item Genome annotation: $x$ – DNA, $y$ – genes
+	\item HEP tracking: $x$ - a set of hits with backgrounds, $y$ – hit classification
+ 
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Sequence modelling III}
+
+\begin{block}{Sequence transduction / transformation}
+
+\begin{enumerate}
+
+
+\item $\bm{x} = x_1,x_2,\ldots,x_n $, $x_i \in V_{source}$  - objects
+\item $\bm{y} = y_1,y_2,\ldots,y_n $, $y_i \in V_{target}$ - objects 
+\item $ \{(\bm{x}^{(1)}, \bm{y}^{(1)} ), (\bm{x}^{(2)}, \bm{y}^{(2)} ),\ldots, (\bm{x}^{(m)}, \bm{y}^{(m)} ) \} $ – training data
+\item $\bm{x}^{(1)}$, $\bm{y}^{(1)} $ are of different length
+
+\end{enumerate}
+
+Transduction problem: $\bm{x}_{source} \rightarrow \bm{y}_{target}$ 
+	
+\end{block}
+
+\begin{enumerate}
+
+	\item Machine translation: $x$ – sentence in German, $y$ – sentence in English
+	\item Speech recognition: $x$ – spoken language, $y$ – text
+	\item Chat bots: $x$ – question, $y$ – answer
+ 
+\end{enumerate}
+
+\end{frame}
+
+
+\begin{frame}{Traditional ML approaches to sequence modeling}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+
+\begin{itemize}
+	
+\item Hidden Markov Models (HMM)
+\item Conditional Random Fields (CRF)
+\item Local classifier: for each $x$ define features, based on $x_{-1}$, $x_{+1}$, etc,  and perform classification $n$ times
+\end{itemize}
+
+Problems:
+\begin{enumerate}
+	\item Markov assumption: fixed length history
+	\item Computation complexity  
+\end{enumerate}
+\end{column}
+\begin{column}{0.4\textwidth}  %%<--- here
+    \begin{center}
+	\includegraphics[width=1.\textwidth]{../../img/HMM.png}
+     \end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{DL approaches to sequence modeling}
+\begin{columns}
+\begin{column}{0.6\textwidth}
+
+\begin{itemize}
+	
+\item Recurrent neural network and its modifications: LSTM, GRU, Highway
+\item Transformer
+\item 2D Convolutional Neural Network
+\item Pointer network
+\end{itemize}
+
+Problems:
+\begin{enumerate}
+	\item Training time
+	\item Amount of training data
+\end{enumerate}
+\end{column}
+\begin{column}{0.4\textwidth}  %%<--- here
+    \begin{center}
+	\includegraphics[width=1.\textwidth]{../img/seqmodel.png}
+     \end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\section{Recurrent neural network}
+\subsection{Definition}
+
+\begin{frame}{Recurrent neural network}	
+\begin{columns}
+\begin{column}{0.6\textwidth}
+
+\begin{itemize}
+	
+\item  Input: sequence of vectors 
+\item 
+$x_{1:n} = x_1, x_2, \ldots, x_n$, $x_i \in \mathbb{R}^{d_{in}}$
+
+\item  Output: a single vector
+
+ $y_n = RNN(x_{1:n})$, $y_n \in \mathbb{R}^{d_{out}}$
+
+\item For each prefix $x_{i:j}$ define an output vector $y_i$:
+
+$y_i = RNN(x_{1:i})$
+
+\item $RNN^{*}$ is a function returning this sequence for input sequence $x_{1:n}$:
+
+$y_{1:n} = RNN^{*}(x_{1:n})$, $y_i \in \mathbb{R}^{d_{out}}$
+
+\end{itemize}
+
+\end{column}
+\begin{column}{0.4\textwidth}  %%<--- here
+    \begin{center}
+	\includegraphics[width=1.\textwidth]{../../img/rnn1.png}
+     \end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Sequence modelling with RNN}
+
+\begin{enumerate}
+
+	\item Sequence classification  
+
+Put a dense layer on top of RNN to predict the desired class of the sequence after the whole sequence is processed 
+\[ p( l_j | \bm{x}_{1:n} ) = \texttt{softmax} (RNN(\bm{x}_{1:n}) \times W + b)_{[j]} \]
+
+
+	\item Sequence labelling 
+	
+Produce an output $y_i$ for each input RNN reads in. Put a dense layer on top of each output to predict the desired class of the input
+
+\[ p( l_j | \bm{x}_{j}  ) = \texttt{softmax} (RNN(\bm{x}_{1:j}) \times W + b)_{[j]} \]
+
+
+\end{enumerate}
+	
+\end{frame}
+
+
+\begin{frame}{More details on RNN}	
+\begin{columns}
+\begin{column}{0.6\textwidth}
+
+\begin{itemize}
+	
+\item $RNN^{*}(x_{1:n}, s_0) = y_{1:n}$ 
+\item $y_i = O(s_i)$ – simple activation function 
+\item $s_i = R(s_{i-1, x_i})$, where $R$ is a recursive function, $s_i$ is a state vector
+\item $s_0$ is initialized randomly or is a zero vector
+\item $x_i \in \mathbb{R}^{d_{in}}$, $y_i \in \mathbb{R}^{d_{out}}$, $s_i \in \mathbb{R}^{f(d_{out})}$ 
+\item $\theta$ –  shared weights
+
+\end{itemize}
+
+\end{column}
+\begin{column}{0.4\textwidth}  %%<--- here
+    \begin{center}
+	\includegraphics[width=1.\textwidth]{../../img/rnn1.png}
+     \end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+
+
+\begin{frame}{More details on RNN}	
+\begin{columns}
+\begin{column}{0.6\textwidth}
+
+\begin{itemize}
+	
+\item $s_i = R(x_i, s_{i-1}) =g(s_{i-1}  W^s + x_i W^x + b)$
+\item $y_i = O(s_i) = s_i$
+\item $y_i, s_i, b \in \mathbb{R}^{d_{out}}$, $x_i \in \mathbb{R}^{d_{in}}$
+\item $W^x \in \mathbb{R}^{d_{in} \times d_{out}}$, $W^s \in \mathbb{R}^{d_{out} \times d_{out}}$
+
+\end{itemize}
+
+\end{column}
+\begin{column}{0.4\textwidth}  %%<--- here
+    \begin{center}
+	\includegraphics[width=1.\textwidth]{../../img/rnn1.png}
+     \end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+
+\begin{frame}{RNN unrolled}	
+
+    \begin{center}
+	\includegraphics[width=0.7\textwidth]{../../img/rnn2.png}
+     \end{center}
+
+\[ s_4 = R(s_3, x_4) = R(R(s_2, x_3), x_4) = R(R(R(s_1, x_2), x_3), x_4) =  \]
+\[ = R(R(R(R(s_0, x1), x_2), x_3), x_4)\]
+
+\end{frame}
+
+\begin{frame}{Bidirectional RNN (Bi-RNN)}
+
+The input sequence can be read from left to right and from right to left. Which direction is better?	
+
+    \begin{center}
+	\includegraphics[width=0.7\textwidth]{../../img/birnn1.png}
+     \end{center}
+
+\[biRNN(x_{1:n}, i) = y_i = [RNN^f(x_{1:i}); RNN^r(x_{n:i})]\]
+\end{frame}
+
+
+\begin{frame}{Bi-RNN}	
+
+    \begin{center}
+	\includegraphics[width=0.7\textwidth]{../../img/birnn2.png}
+     \end{center}
+
+\[biRNN^{*}(x_{1:n}, i) = y_{1:n} = biRNN(x_{1:n}, 1) \ldots biRNN(x_{1:n}, n)\]
+\end{frame}
+
+\begin{frame}{Multilayer RNN}	
+
+    \begin{center}
+	\includegraphics[width=0.7\textwidth]{../../img/rnn8.png}
+     \end{center}
+
+
+Connections between different layers are possible too: $y_1^2 = \texttt{concat}(x_1, y_1^1)$ 
+
+\end{frame}
+
+\subsection{Training}
+
+
+
+
+
+\begin{frame}{Sequence classification}	
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+
+
+\begin{itemize}
+\item $\hat{y_n} = O(s_n)$
+\item $\texttt{prediction} = MLP(\hat{y_n})$
+\item Loss: $L(\hat{y_n}, y_n)$
+\item $L$ can take any  form: cross entropy, hinge, margin, etc.
+\end{itemize}
+
+
+\end{column}
+
+\begin{column}{0.5\textwidth}
+
+\includegraphics[width=1.0\textwidth]{../../img/rnn3.png}
+	
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Sequence labelling}	
+
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+
+
+\begin{itemize}
+	\item Output $\hat{t_i}$ for each input $x_{1,i}$
+	\item Local loss: $L_{local}( \hat{t_i}, t_i)$
+	\item Global loss: $L(\hat{t_n}, t_n ) = \sum_i L_{local}(\hat{t_i}, t_i)$
+	\item $L$ can take any  form: cross entropy, hinge, margin, etc.
+\end{itemize}
+
+\end{column}
+\begin{column}{0.5\textwidth}
+
+
+\includegraphics[width=1.0\textwidth]{../../img/sq1.png}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+
+\begin{frame}{Backpropogation through time}	
+\begin{center}
+\includegraphics[width=0.7\textwidth]{../../img/bptt.png}
+
+\end{center}
+
+
+
+
+
+$s_i = R(x_i, s_{i-1}) =g(s_{i-1}  W^s + x_i W^x + b)$
+
+Chain rule: $ \frac{\partial L}{\partial w} = \frac{\partial L}{\partial p(\hat{y_5})} \frac{\partial p(\hat{y_5})}{\partial s_4} (\frac{ \partial s_4 }{\partial w}  + \frac{ \partial s_4 }{\partial s_3} \frac{ \partial s_3 }{\partial w} + \frac{ \partial s_4 }{\partial s_3} \frac{ \partial s_3 }{\partial s_2} \frac{ \partial s_2 }{\partial s_w} + \ldots ) $
+
+
+
+
+\end{frame}
+
+\begin{frame}{Vanishing gradient problem}	
+
+
+Chain rule: $ \frac{\partial L}{\partial w} = \frac{\partial L}{\partial p(\hat{y_5})} \frac{\partial p(\hat{y_5})}{\partial s_4} (\frac{ \partial s_4 }{\partial w}  + \frac{ \partial s_4 }{\partial s_3} \frac{ \partial s_3 }{\partial w} + \frac{ \partial s_4 }{\partial s_3} \frac{ \partial s_3 }{\partial s_2} \frac{ \partial s_2 }{\partial s_w} + \ldots ) $
+
+$g$ – sigmoid
+
+\begin{enumerate}
+	\item Many sigmoids near 0 and 1
+	\begin{itemize}
+		\item Gradients $\rightarrow$ 0
+		\item Not training for long term dependencies
+	\end{itemize}
+	\item Many sigmoids $>1$
+	\begin{itemize}
+		\item Gradients $\rightarrow +\inf$ 
+		\item Not training again
+	\end{itemize}
+\end{enumerate}
+Solution: gated architectures (LSTM and GRU)
+
+\end{frame}
+
+\section{Gated architectures}
+
+\begin{frame}{Controlled memory access}
+\begin{itemize}
+	\item Entire memory vector is changed: $s_{i+1} = R(x_i, s_i)$
+	\item Controlled memory access: $s_{i+1} = g \odot R(x_i, s_i) + (1-g) s_i$
+	
+	$g \in [0,1]^d,  s,x \in \mathbb{R}^d$
+	\item Differential gates: $\sigma(g), g' \in \mathbb{R}^d$
+	\item This controllable gating mechanism is the basis of the LSTM and the GRU architectures
+	
+\end{itemize}	
+\end{frame}
+
+\begin{frame}{Long short term memory}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{../../img/lstm1.png}
+\end{center}
+
+\url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}	
+\end{frame}
+
+
+\begin{frame}{Long short term memory}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{../../img/lstm2.png}
+\end{center}
+
+\url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}	
+\end{frame}
+
+\begin{frame}{Long short term memory}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{../../img/lstm3.png}
+\end{center}
+
+\url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}	
+\end{frame}
+
+
+\begin{frame}{Long short term memory}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{../../img/lstm4.png}
+\end{center}
+
+\url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}	
+\end{frame}
+
+\begin{frame}{Long short term memory}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{../../img/lstm5.png}
+\end{center}
+
+\url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}	
+\end{frame}
+
+\begin{frame}{Gated recurrent unit}
+\begin{center}
+\includegraphics[width=1.0\textwidth]{../../img/gru.png}
+\end{center}
+
+\url{http://colah.github.io/posts/2015-08-Understanding-LSTMs/}	
+\end{frame}
+
+\section{RNN generators}
+
+\begin{frame}{Sequence generation}
+
+Teacher forcing: $x := <s> x, y := x </s?$
+
+$x : <s> x_1 x_2 \ldots x_n$
+
+$y : x_1 x_2 \ldots x_n </s>$
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{../../img/gen.png}
+\end{center}
+
+
+
+
+\end{frame}
+
+
+\begin{frame}{Sequence generation}
+\begin{itemize}
+	\item Examples of generated texts: \url{http://karpathy.github.io/2015/05/21/rnn-effectiveness/}
+	\item Examples of generated MIDI music: \url{https://towardsdatascience.com/how-to-generate-music-using-a-lstm-neural-network-in-keras-68786834d4c5}
+
+\end{itemize}	
+\end{frame}
+
+\begin{frame}{Pros and cons of RNNs}
+
+\begin{enumerate}
+\item Advantages: 
+\begin{itemize} 
+\item RNNs are popular and successful for variable-length sequences
+\item The gating models such as LSTM are suited for long-range error propagation
+\end{itemize}
+
+\item Problems: 
+\begin{itemize}
+\item The sequentiality prohibits parallelization within instances
+\item Long-range dependencies still tricky, despite gating 
+\end{itemize}
+
+\end{enumerate}
+
+\end{frame}
+
+\section{The Transformer}
+
+
+\begin{frame}{The Transformer}	
+\begin{columns}
+\begin{column}{0.6\textwidth}
+
+An alternative architecture to RNN which allows of parallel and faster training
+
+\begin{itemize}
+	
+\item Several layers of identical modules
+\item Each module consists of Multi-Head Attention and Feed Forward layers
+\item Input: embeddings. How to get embeddings for numerical input? Apply any dense layer
+\item Posituonal embeddings
+\end{itemize}
+
+\end{column}
+\begin{column}{0.4\textwidth}  %%<--- here
+    \begin{center}
+	\includegraphics[width=1.\textwidth]{../../img/transformer.png}
+     \end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Multi-head Attention}	
+\includegraphics{}
+
+\[ Attention(K, Q, V) = softmax(\frac{QK^{T}}{\sqrt{d_k)) V\]
+
+\end{frame}
+
+\begin{frame}{Positional embeddings}
+... are used to handle sequences, 	
+\includegraphics{}
+
+
+\end{frame}
+
+
+
+
+\begin{frame}{Sequence 2 sequence learning}
+Encoder-decoder model for:
+\begin{enumerate}
+	\item Machine translation
+	\item Chit-chat bots
+\end{enumerate}
+\includegraphics[width=1.0\textwidth]{../../img/seq2seq_1.png}
+\end{frame}
+
+
+
+
+\section{Bonus I: seq2seq}
+
+\begin{frame}{Sequence 2 sequence learning}
+Encoder-decoder model for:
+\begin{enumerate}
+	\item Machine translation
+	\item Chit-chat bots
+\end{enumerate}
+\includegraphics[width=1.0\textwidth]{../../img/seq2seq_1.png}
+\end{frame}
+
+
+
+\section{Bonus II: RecNN}
+
+\begin{frame}{Modeling trees with Recursive NN}
+\begin{itemize}
+	\item Input: $x_1, x_2, \ldots, x_n$
+	\item A binary tree $T$ can be represented as a unique set of triplets~$(i,k,j)$, s.t.~$i < k < j$, $x_{i:j}$ is parent of $x_{i:k}, i_{k+1,j}$
+	\item RecNN takes as an input a binary tree and returns as output a corresponding set of inside state vectors $\bm{s_{i:j}^A} \in \mathbb{R}^d$
+	\item Each state vector $\bm{s_{i:j}^A}$ represents the corresponding tree node $q_{i:j}^A$ and encodes the entire structure rooted at that node
+\end{itemize}
+	
+\end{frame}
+
+
+\begin{frame}{RecNN}
+\begin{itemize}
+\item Input: $x_1, x_2, \ldots, x_n$ and a binary tree $T$
+
+\item $RecNN(x_1, x_2, \ldots, x_n, T) = \{ \bm{s_{i:j}^A} \in \mathbb{R}^d | q_{i:j}^A \in  T \} $
+\item $\bm{s_{i:i}^A} = v(x_i)$
+\item $\bm{s_{i:j}^A} = R(A,B,C, \bm{s_{i:k}^B}, \bm{s_{k+1:j}^C})$, $q_{i:k}^B \in T, q_{k+1:j}^C \in T$
+\item $R(A,B,C, \bm{s_{i:k}^B}, \bm{s_{k+1:j}^C}) = g([\bm{s_{i:k}^B}, \bm{s_{k+1:j}^C}]W)$	
+\end{itemize}
+\end{frame}
+
+\end{document}
